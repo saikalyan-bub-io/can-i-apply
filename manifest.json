@@ -4,7 +4,7 @@
   "version": "2.0",
   "description": "Job match analyzer in sidebar",
   "permissions": ["storage", "tabs", "activeTab", "sidePanel"],
-  "host_permissions": ["https://api.mistral.ai/*", "https://api.openai.com/*"],
+  "host_permissions": ["https://api.mistral.ai/*", "https://api.openai.com/*", "https://api.groq.com/*"],
   "background": {
     "service_worker": "background.js"
   },

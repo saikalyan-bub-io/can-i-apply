@@ -6,6 +6,7 @@ const analyzeBtn = document.getElementById("analyze");
 const uploadSection = document.getElementById("uploadSection");
 const previewSection = document.getElementById("previewSection");
 
+// Helper to switch sections
 function showUploadSection() {
   if (uploadSection) uploadSection.style.display = "block";
   if (previewSection) previewSection.style.display = "none";
@@ -33,6 +34,7 @@ chrome.storage.local.get(["resumeText", "lastAnalyzedResume"], d => {
   }
 });
 
+// File input handler
 document.getElementById("fileInput").addEventListener("change", async e => {
   const file = e.target.files[0];
   if (!file) return;
@@ -54,17 +56,16 @@ document.getElementById("fileInput").addEventListener("change", async e => {
     lastAnalyzedResume: ""
   });
 
-  resultDiv.className = "result-placeholder";
-  resultDiv.textContent = 'Upload your resume and click "Analyze Match" to see your compatibility score and detailed insights.';
+  resetResultUI();
   analyzeBtn.disabled = false;
   isAnalyzing = false;
   showPreviewSection();
 });
 
+// Reset button handler
 document.getElementById("reset").onclick = () => {
   resumeBox.value = "";
-  resultDiv.className = "result-placeholder";
-  resultDiv.textContent = 'Upload your resume and click "Analyze Match" to see your compatibility score and detailed insights.';
+  resetResultUI();
   analyzeBtn.disabled = false;
   isAnalyzing = false;
   lastAnalyzedResume = "";
@@ -72,27 +73,44 @@ document.getElementById("reset").onclick = () => {
   showUploadSection();
 };
 
+function resetResultUI() {
+  resultDiv.innerHTML = `
+    <div class="empty-state">
+      <div class="empty-state-icon">
+          <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto;">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+      </div>
+      <p>Upload your resume to start the analysis</p>
+    </div>
+  `;
+}
+
+// Analyze button handler
 analyzeBtn.onclick = () => {
   const current = resumeBox.value.trim();
   if (!current) return alert("Please upload your resume first");
 
   if (lastAnalyzedResume && current === lastAnalyzedResume.trim()) {
-    if (!resultDiv.innerHTML.trim()) {
-      resultDiv.className = "";
-      resultDiv.textContent = "Analysis is already up to date for this version of your resume.";
+    // If we are already showing results for this resume, and they are still there, no need to re-analyze.
+    // But if resultDiv is empty or showing placeholder, proceed (though that shouldn't happen with correct logic).
+    if (!resultDiv.querySelector(".result-card")) {
+      // Just in case
+    } else {
+      return; // Already showing results
     }
-    return;
   }
 
   if (isAnalyzing) return;
 
   isAnalyzing = true;
   analyzeBtn.disabled = true;
-  resultDiv.className = "";
+
+  // Modern Loading State
   resultDiv.innerHTML = `
     <div style="text-align: center; padding: 40px 20px;">
-      <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #4f46e5; border-radius: 50%; margin: 0 auto 16px; animation: spin 1s linear infinite;"></div>
-      <p style="color: #6b7280; font-size: 14px;">Analyzing your match...</p>
+      <div style="width: 40px; height: 40px; border: 3px solid #e5e7eb; border-top-color: #3b82f6; border-radius: 50%; margin: 0 auto 16px; animation: spin 1s linear infinite;"></div>
+      <p style="color: #6b7280; font-size: 0.875rem; font-weight: 500;">Analyzing resume against job description...</p>
     </div>
     <style>
       @keyframes spin {
@@ -100,9 +118,11 @@ analyzeBtn.onclick = () => {
       }
     </style>
   `;
+
   chrome.runtime.sendMessage({ type: "ANALYZE" });
 };
 
+// Listen for results
 chrome.runtime.onMessage.addListener(msg => {
   if (msg.type === "RESULT") {
     isAnalyzing = false;
@@ -113,11 +133,9 @@ chrome.runtime.onMessage.addListener(msg => {
 
     const html = renderHTML(msg.text || "");
     if (html) {
-      resultDiv.className = "";
       resultDiv.innerHTML = html;
       initAccordions();
     } else {
-      resultDiv.className = "";
       resultDiv.innerText = msg.text;
     }
   }
@@ -125,14 +143,17 @@ chrome.runtime.onMessage.addListener(msg => {
 
 function renderHTML(text) {
   if (!text.includes("Job Domain:")) {
+    // Error / No Job Description State
     return `
       <div class="result-card">
-        <div style="padding: 24px; text-align: center;">
-          <svg width="48" height="48" style="color: #dc2626; margin: 0 auto 12px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-          </svg>
-          <p style="color: #dc2626; font-weight: 600; margin-bottom: 6px;">Job Description Not Detected</p>
-          <p style="color: #6b7280; font-size: 13px;">Please open a job listing page and try again.</p>
+        <div style="padding: 2rem; text-align: center;">
+          <div style="width: 48px; height: 48px; background: #fef2f2; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem; color: #dc2626;">
+            <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+            </svg>
+          </div>
+          <p style="color: #111827; font-weight: 600; margin-bottom: 0.5rem;">Job Description Not Found</p>
+          <p style="color: #6b7280; font-size: 0.8125rem;">Please navigate to a job listing page and try analyzing again.</p>
         </div>
       </div>
     `;
@@ -147,9 +168,9 @@ function renderHTML(text) {
 
   const matchNum = parseInt(text.match(/Match:\s*(\d+)%/i)?.[1] || 0);
 
-  let color = "green";
-  if (matchNum < 35) color = "red";
-  else if (matchNum < 60) color = "orange";
+  let colorClass = "score-green";
+  if (matchNum < 35) colorClass = "score-red";
+  else if (matchNum < 60) colorClass = "score-orange";
 
   const lines = text.split("\n");
 
@@ -208,6 +229,7 @@ function renderHTML(text) {
 
     let item = { type: "text", text: line, probClass: "" };
 
+    // Format detection
     if (/^[-*•]/.test(line) || /^\d+\./.test(line)) {
       item.type = "bullet";
       item.text = line.replace(/^[-*•\d\.]+/, "").trim();
@@ -216,9 +238,9 @@ function renderHTML(text) {
     if (line.includes("Probability")) {
       const num = parseInt(line.match(/(\d+)%/)?.[1] || 0);
       item.type = "prob";
-      if (num < 20) item.probClass = "result-line-prob-red";
-      else if (num < 50) item.probClass = "result-line-prob-orange";
-      else item.probClass = "result-line-prob-green";
+      if (num < 20) item.probClass = "prob-red";
+      else if (num < 50) item.probClass = "prob-orange";
+      else item.probClass = "prob-green";
     }
 
     if (currentSection && sections[currentSection]) {
@@ -228,73 +250,74 @@ function renderHTML(text) {
     }
   }
 
+  // --- HTML Construction ---
   let html = '<div class="result-card">';
 
+  // Header part
   html += '<div class="result-header">';
-  html += '<div class="result-match">';
-  html += '<div class="match-score">';
-  html += '<div class="result-match-label">Match Score</div>';
-  html += `<div class="result-match-value result-title-${color}">${matchNum}%</div>`;
+  html += '<div class="match-score-lockup">';
+  html += '<div>';
+  html += '<div class="score-label">Match Score</div>';
+  html += `<div class="score-value ${colorClass}">${matchNum}%</div>`;
   html += '</div>';
 
   if (decisionLine) {
-    html += `<div class="result-decision">${decisionLine}</div>`;
+    html += `<div class="decision-badge">${decisionLine}</div>`;
   }
 
-  html += '</div>';
-  html += '</div>';
+  html += '</div>'; // end lockup
+  html += '</div>'; // end header
 
+  // Intro/Overview part
   if (introLines.length) {
-    html += '<div class="result-overview">';
+    html += '<div class="overview-section">';
     for (const item of introLines) {
       if (item.type === "bullet") {
-        html += `<div class="result-line result-line-bullet">${item.text}</div>`;
+        html += `<div class="list-item"><span class="list-item-bullet">•</span><span>${item.text}</span></div>`;
       } else if (item.type === "prob") {
-        html += `<div class="result-line result-line-prob ${item.probClass}">${item.text}</div>`;
+        html += `<div class="list-item"><span class="prob-tag ${item.probClass}">${item.text}</span></div>`;
       } else {
-        html += `<div class="result-line">${item.text}</div>`;
+        html += `<p style="margin-bottom: 0.5rem; color: #374151;">${item.text}</p>`;
       }
     }
     html += '</div>';
   }
 
-  html += '<div class="accordion">';
+  // Accordion part
+  html += '<div>'; // Container for accordions
   let firstOpenSet = false;
 
   for (const key of sectionOrder) {
     const items = sections[key];
     if (!items || !items.length) continue;
 
-    const isOpenClass = !firstOpenSet ? " is-open" : "";
+    const isOpenClass = !firstOpenSet ? " open" : "";
     if (!firstOpenSet) firstOpenSet = true;
 
     html += `<div class="accordion-item${isOpenClass}">`;
-    html += '<button type="button" class="accordion-header">';
-    html += '<div class="accordion-title">';
-    html += `<span>${sectionMap[key]}</span>`;
-    html += '</div>';
-    html += '<span class="accordion-badge">Details</span>';
-    html += '<div class="accordion-chevron">';
-    html += '<svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M19 9l-7 7-7-7"/></svg>';
-    html += '</div>';
+    html += '<button type="button" class="accordion-btn">';
+    html += `<span class="accordion-title">${sectionMap[key]}</span>`;
+    html += '<svg class="accordion-icon" width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>';
     html += '</button>';
 
-    html += '<div class="accordion-panel">';
+    html += '<div class="accordion-content" style="' + (isOpenClass ? 'max-height: 1000px;' : '') + '">';
+    html += '<div class="accordion-body">';
     for (const item of items) {
       if (item.type === "bullet") {
-        html += `<div class="result-line result-line-bullet">${item.text}</div>`;
+        html += `<div class="list-item"><span class="list-item-bullet">•</span><span>${item.text}</span></div>`;
       } else if (item.type === "prob") {
-        html += `<div class="result-line result-line-prob ${item.probClass}">${item.text}</div>`;
+        html += `<div class="list-item"><span class="prob-tag ${item.probClass}">${item.text}</span></div>`;
       } else {
-        html += `<div class="result-line">${item.text}</div>`;
+        html += `<p style="margin-bottom: 0.5rem;">${item.text}</p>`;
       }
     }
-    html += '</div>';
-    html += '</div>';
+    html += '</div>'; // end body
+    html += '</div>'; // end content
+    html += '</div>'; // end item
   }
 
-  html += '</div>';
-  html += '</div>';
+  html += '</div>'; // end accordion container
+  html += '</div>'; // end result card
 
   return html;
 }
@@ -304,31 +327,35 @@ function initAccordions() {
   if (!items.length) return;
 
   items.forEach(item => {
-    const header = item.querySelector(".accordion-header");
-    const panel = item.querySelector(".accordion-panel");
-    if (!header || !panel) return;
+    const btn = item.querySelector(".accordion-btn");
+    const content = item.querySelector(".accordion-content");
+    if (!btn || !content) return;
 
-    if (item.classList.contains("is-open")) {
-      panel.style.maxHeight = panel.scrollHeight + "px";
-    } else {
-      panel.style.maxHeight = "0px";
+    // Set initial height for open items
+    if (item.classList.contains("open")) {
+      content.style.maxHeight = content.scrollHeight + "px";
     }
 
-    header.addEventListener("click", () => {
-      const isOpen = item.classList.contains("is-open");
+    btn.addEventListener("click", () => {
+      const isOpen = item.classList.contains("open");
 
+      // Close all others (optional - standard accordion behavior)
       items.forEach(other => {
-        const otherPanel = other.querySelector(".accordion-panel");
-        if (!otherPanel) return;
-
-        if (other === item && !isOpen) {
-          other.classList.add("is-open");
-          otherPanel.style.maxHeight = otherPanel.scrollHeight + "px";
-        } else {
-          other.classList.remove("is-open");
-          otherPanel.style.maxHeight = "0px";
+        if (other !== item) {
+          other.classList.remove("open");
+          const otherContent = other.querySelector(".accordion-content");
+          if (otherContent) otherContent.style.maxHeight = "0px";
         }
       });
+
+      // Toggle current
+      if (isOpen) {
+        item.classList.remove("open");
+        content.style.maxHeight = "0px";
+      } else {
+        item.classList.add("open");
+        content.style.maxHeight = content.scrollHeight + "px";
+      }
     });
   });
 }

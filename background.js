@@ -23,6 +23,11 @@ chrome.runtime.onMessage.addListener(async (msg) => {
           return;
         }
 
+        if (!jd.trim() || jd.length < 100) {
+          chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Domain\n\nJob Description Not Found:\n- Please make sure you're on a job listing page\n- Try refreshing the page and clicking 'Analyze Match' again\n- LinkedIn job description might not be loaded yet" });
+          return;
+        }
+
         const result = await analyze(jd, resume);
         chrome.runtime.sendMessage({ type: "RESULT", text: result });
       });
@@ -42,19 +47,19 @@ async function analyze(jd, resume) {
       // or: llama3-8b-8192 (faster)
       messages: [
         { role: "system", content: "You are an ATS resume evaluator." },
-  {
-  role: "user",
-  content: `
+        {
+          role: "user",
+          content: `
 You are a STRICT ATS + Recruiter Intelligence Engine.
 
-CRITICAL RULE:
-You MUST determine Job Domain strictly from the Job Title provided in Job Description section.
-If Job Title is missing, state Job Domain as "Unknown".
-
-Do NOT infer Job Domain from resume.
+CRITICAL RULES:
+1. The input below starts with "Job Title: <title>". Extract the EXACT job title from that line.
+2. Determine "Job Domain" ONLY from that extracted job title.
+3. Do NOT infer Job Domain from the job description body or resume content.
+4. If "Job Title:" line is missing or empty, state Job Domain as "Unknown".
 
 Scoring Rules:
-- Domain mismatch → Match must be below 35%
+- Domain mismatch → Match MUST be below 35%
 - Senior role without leadership/system design → penalize heavily
 - Missing core job skills → reduce score significantly
 
@@ -65,8 +70,8 @@ Match: <exact number>%
 Decision: Apply / Improve / Invalid Domain
 
 Domain Identity Score:
-Resume Domain: <detected role>
-Job Domain: <job role from job title>
+Resume Domain: <detected role from resume>
+Job Domain: <role extracted from Job Title line ONLY>
 Alignment: <exact number>%
 
 Recruiter Rejection Simulator:
@@ -112,7 +117,7 @@ ${jd}
 Resume:
 ${resume}
 `
-}
+        }
 
 
       ],

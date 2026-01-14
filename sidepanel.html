@@ -1,12 +1,21 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Can I Apply?</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
-      --primary-600: #4f46e5;
-      --primary-700: #4338ca;
-      --primary-50: #eef2ff;
+      /* Modern Color Palette */
+      --primary-50: #eff6ff;
+      --primary-100: #dbeafe;
+      --primary-500: #3b82f6;
+      --primary-600: #2563eb;
+      --primary-700: #1d4ed8;
+
       --gray-50: #f9fafb;
       --gray-100: #f3f4f6;
       --gray-200: #e5e7eb;
@@ -15,16 +24,25 @@
       --gray-500: #6b7280;
       --gray-600: #4b5563;
       --gray-700: #374151;
+      --gray-800: #1f2937;
       --gray-900: #111827;
-      --green-600: #16a34a;
-      --green-50: #f0fdf4;
-      --orange-600: #ea580c;
-      --orange-50: #fff7ed;
-      --red-600: #dc2626;
-      --red-50: #fef2f2;
+
+      --success-50: #f0fdf4;
+      --success-600: #16a34a;
+      
+      --warning-50: #fff7ed;
+      --warning-600: #ea580c;
+      
+      --danger-50: #fef2f2;
+      --danger-600: #dc2626;
+
       --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+      --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+      --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+      --radius-sm: 0.375rem;
+      --radius-md: 0.5rem;
+      --radius-lg: 0.75rem;
     }
 
     * {
@@ -34,558 +52,598 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-      background: var(--gray-50);
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: var(--gray-50);
       color: var(--gray-900);
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
     }
 
     .container {
-      max-width: 400px;
-      height: 100vh;
       display: flex;
       flex-direction: column;
+      height: 100vh;
       background: white;
+      max-width: 100%;
     }
 
     /* Header */
     .header {
-      background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
+      padding: 1.5rem;
+      background: linear-gradient(145deg, #1e1b4b 0%, #312e81 100%);
       color: white;
-      padding: 20px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      flex-shrink: 0;
     }
 
-    .header-top {
+    .header::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      background: linear-gradient(to right, rgba(255,255,255,0.05) 1px, transparent 1px),
+                  linear-gradient(to bottom, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+      opacity: 0.2;
+      pointer-events: none;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .brand {
       display: flex;
       align-items: center;
-      gap: 12px;
-      margin-bottom: 12px;
+      gap: 0.75rem;
     }
 
-    .logo {
-      width: 40px;
-      height: 40px;
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      border-radius: 10px;
+    .logo-box {
+      width: 42px;
+      height: 42px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border-radius: var(--radius-md);
       display: flex;
       align-items: center;
       justify-content: center;
+      font-weight: 800;
+      font-size: 1.125rem;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .brand-text h1 {
+      font-size: 1.125rem;
       font-weight: 700;
-      font-size: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.3);
+      letter-spacing: -0.025em;
+      line-height: 1.2;
     }
 
-    .header-title {
-      flex: 1;
+    .brand-text p {
+      font-size: 0.75rem;
+      opacity: 0.8;
+      font-weight: 400;
     }
 
-    .header-title h1 {
-      font-size: 18px;
+    .pro-badge {
+      font-size: 0.625rem;
       font-weight: 600;
-      margin-bottom: 2px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.25rem 0.5rem;
+      background: linear-gradient(135deg, #fbbf24, #d97706);
+      color: white;
+      border-radius: 999px;
+      margin-left: auto;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     }
 
-    .header-title p {
-      font-size: 12px;
+    .header-desc {
+      margin-top: 1rem;
+      font-size: 0.8125rem;
       opacity: 0.9;
-    }
-
-    .badge {
-      background: rgba(255, 255, 255, 0.2);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 500;
-      border: 1px solid rgba(255, 255, 255, 0.3);
-    }
-
-    .header-description {
-      font-size: 13px;
-      line-height: 1.6;
-      opacity: 0.95;
+      line-height: 1.4;
+      position: relative;
+      z-index: 10;
+      max-width: 90%;
     }
 
     /* Main Content */
     .content {
       flex: 1;
       overflow-y: auto;
-      padding: 20px;
+      padding: 1.5rem;
     }
 
     .section {
-      margin-bottom: 20px;
+      margin-bottom: 2rem;
+      animation: fadeIn 0.4s ease-out;
     }
 
-    .section-label {
+    .section-header {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--gray-700);
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
     }
 
-    .step-number {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 20px;
-      height: 20px;
+    .step-indicator {
+      width: 1.25rem;
+      height: 1.25rem;
       background: var(--primary-600);
       color: white;
       border-radius: 50%;
-      font-size: 11px;
+      font-size: 0.75rem;
       font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .section-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--gray-500);
     }
 
     /* File Upload */
-    .file-upload {
+    .upload-area {
       position: relative;
       border: 2px dashed var(--gray-300);
-      border-radius: 12px;
-      padding: 16px;
+      border-radius: var(--radius-lg);
+      padding: 2rem 1.5rem;
       background: var(--gray-50);
-      transition: all 0.2s;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
       cursor: pointer;
+      overflow: hidden;
     }
 
-    .file-upload:hover {
-      border-color: var(--primary-600);
+    .upload-area:hover {
+      border-color: var(--primary-500);
       background: var(--primary-50);
     }
 
-    .file-upload input[type="file"] {
+    .upload-area input[type="file"] {
       position: absolute;
       inset: 0;
+      width: 100%;
+      height: 100%;
       opacity: 0;
       cursor: pointer;
     }
 
-    .file-upload-content {
+    .upload-content {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 8px;
+      gap: 0.75rem;
       pointer-events: none;
     }
 
-    .upload-icon {
-      width: 40px;
-      height: 40px;
-      background: var(--gray-200);
+    .upload-icon-circle {
+      width: 48px;
+      height: 48px;
+      background: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: var(--gray-600);
+      color: var(--primary-600);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--gray-200);
     }
 
-    .upload-text {
-      font-size: 13px;
-      color: var(--gray-600);
+    .upload-instructions {
       text-align: center;
     }
 
-    .upload-text strong {
-      color: var(--primary-600);
+    .upload-primary {
+      font-size: 0.875rem;
       font-weight: 600;
+      color: var(--gray-900);
+      display: block;
+      margin-bottom: 0.25rem;
     }
 
-    /* Textarea */
+    .upload-secondary {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+
+    /* Resume Preview */
+    .textarea-wrapper {
+      position: relative;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1px solid var(--gray-200);
+      background: white;
+      box-shadow: var(--shadow-sm);
+    }
+
     textarea {
       width: 100%;
-      min-height: 120px;
-      padding: 12px;
-      border: 1px solid var(--gray-300);
-      border-radius: 8px;
-      font-size: 13px;
-      font-family: ui-monospace, 'Courier New', monospace;
-      resize: vertical;
-      background: var(--gray-50);
+      min-height: 140px;
+      padding: 1rem;
+      border: none;
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       color: var(--gray-700);
-      transition: all 0.2s;
+      resize: vertical;
+      background: transparent;
     }
 
     textarea:focus {
       outline: none;
-      border-color: var(--primary-600);
       background: white;
-      box-shadow: 0 0 0 3px var(--primary-50);
     }
-
-    textarea[readonly] {
-      cursor: default;
+    
+    .textarea-wrapper:focus-within {
+      box-shadow: 0 0 0 2px var(--primary-100);
+      border-color: var(--primary-500);
     }
 
     /* Buttons */
-    .button-group {
-      display: grid;
-      grid-template-columns: 1fr 2fr;
-      gap: 10px;
+    .actions {
+      display: flex;
+      gap: 0.75rem;
     }
 
-    button {
-      padding: 12px 20px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      border: 1px solid transparent;
+      gap: 0.5rem;
     }
 
-    button:active {
-      transform: translateY(1px);
+    .btn:focus {
+      outline: 2px solid offset;
+      outline-offset: 2px;
     }
 
-    #analyze {
-      background: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
-      color: white;
-      box-shadow: var(--shadow-md);
-    }
-
-    #analyze:hover:not(:disabled) {
-      box-shadow: var(--shadow-lg);
-      transform: translateY(-1px);
-    }
-
-    #analyze:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-
-    #reset {
+    .btn-secondary {
       background: white;
+      border-color: var(--gray-200);
       color: var(--gray-700);
-      border: 1px solid var(--gray-300);
-    }
-
-    #reset:hover {
-      background: var(--gray-50);
-      border-color: var(--gray-400);
-    }
-
-    /* Result Section */
-    #result {
-      font-size: 13px;
-      line-height: 1.6;
-    }
-
-    .result-placeholder {
-      padding: 24px;
-      text-align: center;
-      color: var(--gray-500);
-      background: var(--gray-50);
-      border: 1px dashed var(--gray-300);
-      border-radius: 8px;
-    }
-
-    .result-card {
-      background: white;
-      border: 1px solid var(--gray-200);
-      border-radius: 12px;
-      overflow: hidden;
       box-shadow: var(--shadow-sm);
     }
 
-    .result-header {
-      background: linear-gradient(to bottom, var(--gray-50), white);
-      padding: 16px;
-      border-bottom: 1px solid var(--gray-200);
-    }
-
-    .result-match {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
-    }
-
-    .match-score {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .result-match-label {
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--gray-500);
-      font-weight: 600;
-    }
-
-    .result-match-value {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1;
-    }
-
-    .result-title-green { color: var(--green-600); }
-    .result-title-orange { color: var(--orange-600); }
-    .result-title-red { color: var(--red-600); }
-
-    .result-decision {
-      padding: 10px 14px;
-      border-radius: 8px;
-      font-size: 12px;
-      font-weight: 500;
-      background: var(--green-50);
-      color: var(--green-600);
-      border: 1px solid rgba(22, 163, 74, 0.2);
-    }
-
-    .result-overview {
-      padding: 16px;
-      font-size: 13px;
-      line-height: 1.7;
-      color: var(--gray-700);
-      border-bottom: 1px solid var(--gray-200);
-    }
-
-    .result-line {
-      margin-bottom: 8px;
-    }
-
-    .result-line-bullet {
-      padding-left: 20px;
-      position: relative;
-    }
-
-    .result-line-bullet::before {
-      content: "•";
-      position: absolute;
-      left: 8px;
-      color: var(--gray-400);
-      font-weight: 700;
-    }
-
-    .result-line-prob {
-      font-weight: 600;
-      padding: 6px 10px;
-      border-radius: 6px;
-      display: inline-block;
-    }
-
-    .result-line-prob-red {
-      background: var(--red-50);
-      color: var(--red-600);
-    }
-
-    .result-line-prob-orange {
-      background: var(--orange-50);
-      color: var(--orange-600);
-    }
-
-    .result-line-prob-green {
-      background: var(--green-50);
-      color: var(--green-600);
-    }
-
-    /* Accordion */
-    .accordion {
-      background: white;
-    }
-
-    .accordion-item {
-      border-bottom: 1px solid var(--gray-200);
-    }
-
-    .accordion-item:last-child {
-      border-bottom: none;
-    }
-
-    .accordion-header {
-      width: 100%;
-      padding: 14px 16px;
-      background: white;
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s;
-      text-align: left;
-    }
-
-    .accordion-header:hover {
+    .btn-secondary:hover {
       background: var(--gray-50);
+      border-color: var(--gray-300);
     }
 
-    .accordion-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+    .btn-primary {
+      background: var(--primary-600);
+      color: white;
+      box-shadow: var(--shadow-sm);
       flex: 1;
     }
 
-    .accordion-title span {
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--gray-900);
+    .btn-primary:hover:not(:disabled) {
+      background: var(--primary-700);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
     }
 
-    .accordion-badge {
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--gray-500);
-      background: var(--gray-100);
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-weight: 600;
+    /* Results */
+    #result {
+      font-size: 0.8125rem;
     }
 
-    .accordion-chevron {
-      width: 20px;
-      height: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--gray-400);
-      transition: transform 0.2s;
-    }
-
-    .accordion-item.is-open .accordion-chevron {
-      transform: rotate(180deg);
-    }
-
-    .accordion-panel {
-      max-height: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease;
-      padding: 0 16px;
-    }
-
-    .accordion-item.is-open .accordion-panel {
-      padding: 0 16px 14px;
-    }
-
-    /* Footer Note */
-    .footer-note {
+    .empty-state {
+      padding: 3rem 1.5rem;
+      text-align: center;
       background: var(--gray-50);
-      border-top: 1px solid var(--gray-200);
-      padding: 16px 20px;
+      border: 2px dashed var(--gray-200);
+      border-radius: var(--radius-lg);
+      color: var(--gray-500);
+    }
+    
+    .empty-state-icon {
+        margin-bottom: 1rem;
+        color: var(--gray-400);
     }
 
-    .footer-note-title {
-      font-size: 11px;
+    /* Footer */
+    .footer {
+      border-top: 1px solid var(--gray-200);
+      background: var(--gray-50);
+      padding: 1rem 1.5rem;
+    }
+
+    .disclaimer-title {
+      font-size: 0.625rem;
+      font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
       color: var(--gray-500);
-      font-weight: 600;
-      margin-bottom: 6px;
+      margin-bottom: 0.25rem;
     }
 
-    .footer-note-text {
-      font-size: 12px;
+    .disclaimer-text {
+      font-size: 0.75rem;
       color: var(--gray-600);
-      line-height: 1.5;
+      line-height: 1.4;
     }
 
     /* Scrollbar */
-    .content::-webkit-scrollbar {
-      width: 8px;
+    ::-webkit-scrollbar {
+      width: 6px;
     }
-
-    .content::-webkit-scrollbar-track {
-      background: var(--gray-100);
+    ::-webkit-scrollbar-track {
+      background: transparent;
     }
-
-    .content::-webkit-scrollbar-thumb {
+    ::-webkit-scrollbar-thumb {
       background: var(--gray-300);
-      border-radius: 4px;
+      border-radius: 99px;
     }
-
-    .content::-webkit-scrollbar-thumb:hover {
+    ::-webkit-scrollbar-thumb:hover {
       background: var(--gray-400);
     }
+
+    /* Animation Keyframes */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Result Specific Styles (Shared with JS) */
+    .result-card {
+        background: white;
+        border: 1px solid var(--gray-200);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1rem;
+    }
+
+    .result-header {
+      background: linear-gradient(to bottom, #fdfbf7, #ffffff);
+      padding: 1.25rem;
+      border-bottom: 1px solid var(--gray-100);
+    }
+    
+    .match-score-lockup {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    
+    .score-label {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--gray-500);
+        margin-bottom: 0.25rem;
+    }
+    
+    .score-value {
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1;
+        letter-spacing: -0.05em;
+    }
+    
+    .score-green { color: var(--success-600); }
+    .score-orange { color: var(--warning-600); }
+    .score-red { color: var(--danger-600); }
+    
+    .decision-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.375rem 0.75rem;
+        border-radius: 99px;
+        background: var(--success-50);
+        color: var(--success-600);
+        border: 1px solid rgba(22, 163, 74, 0.2);
+    }
+
+    .overview-section {
+        padding: 1.25rem;
+    }
+    
+    .list-item {
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+    
+    .list-item-bullet {
+        color: var(--gray-400);
+        margin-top: 0.2rem;
+    }
+
+    /* Accordion */
+    .accordion-item {
+        border-top: 1px solid var(--gray-100);
+    }
+    
+    .accordion-btn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem 1.25rem;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        transition: background-color 0.15s;
+        text-align: left;
+    }
+    
+    .accordion-btn:hover {
+        background-color: var(--gray-50);
+    }
+    
+    .accordion-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--gray-800);
+    }
+    
+    .accordion-icon {
+        color: var(--gray-400);
+        transition: transform 0.2s;
+    }
+    
+    .accordion-item.open .accordion-icon {
+        transform: rotate(180deg);
+    }
+    
+    .accordion-content {
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.3s ease-in-out;
+        background: var(--gray-50);
+    }
+    
+    .accordion-body {
+        padding: 1rem 1.25rem;
+        color: var(--gray-700);
+        font-size: 0.8125rem;
+        border-top: 1px solid var(--gray-100);
+    }
+    
+    .prob-tag {
+        display: inline-block;
+        font-weight: 600;
+        font-size: 0.75rem;
+        padding: 0.125rem 0.5rem;
+        border-radius: 0.25rem;
+        margin-right: 0.5rem;
+    }
+    
+    .prob-green { background: var(--success-50); color: var(--success-600); }
+    .prob-orange { background: var(--warning-50); color: var(--warning-600); }
+    .prob-red { background: var(--danger-50); color: var(--danger-600); }
+
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- Header -->
-    <div class="header">
-      <div class="header-top">
-        <div class="logo">CA</div>
-        <div class="header-title">
-          <h1>Can I Apply?</h1>
-          <p>AI-Powered Job Match Analysis</p>
-        </div>
-        <span class="badge">Pro</span>
-      </div>
-      <p class="header-description">
-        Upload your resume and instantly discover how well you match the job requirements with AI-driven insights.
-      </p>
-    </div>
 
-    <!-- Main Content -->
-    <div class="content">
-      <div class="section" id="uploadSection">
-        <label class="section-label">
-          <span class="step-number">1</span>
-          Upload Resume
-        </label>
-        <div class="file-upload">
+  <div class="container">
+    
+    <!-- Modern Header -->
+    <header class="header">
+      <div class="header-content">
+        <div class="brand">
+          <div class="logo-box">CA</div>
+          <div class="brand-text">
+            <h1>Can I Apply?</h1>
+            <p>Job Match Intelligence</p>
+          </div>
+        </div>
+        <span class="pro-badge">PRO</span>
+      </div>
+      <p class="header-desc">
+        AI-powered insights to analyze your resume fit against any job description in seconds.
+      </p>
+    </header>
+
+    <!-- Content Area -->
+    <main class="content">
+      
+      <!-- Upload Section -->
+      <section id="uploadSection" class="section">
+        <div class="section-header">
+          <div class="step-indicator">1</div>
+          <span class="section-title">Upload Resume</span>
+        </div>
+        
+        <div class="upload-area">
           <input type="file" id="fileInput" accept=".pdf">
-          <div class="file-upload-content">
-            <div class="upload-icon">
-              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+          <div class="upload-content">
+            <div class="upload-icon-circle">
+              <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
               </svg>
             </div>
-            <div class="upload-text">
-              <strong>Click to upload</strong> or drag and drop<br>
-              <span style="font-size: 11px;">PDF files only</span>
+            <div class="upload-instructions">
+              <span class="upload-primary">Click to upload PDF</span>
+              <span class="upload-secondary">or drag and drop here</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div class="section" id="previewSection">
-        <label class="section-label">
-          <span class="step-number">2</span>
-          Resume Preview
-        </label>
-        <textarea id="resumeBox" readonly placeholder="Your resume text will appear here after upload..."></textarea>
-      </div>
+      <!-- Preview Section -->
+      <section id="previewSection" class="section" style="display: none;">
+        <div class="section-header">
+          <div class="step-indicator">2</div>
+          <span class="section-title">Verify Content</span>
+        </div>
 
-      <div class="section">
-        <div class="button-group">
-          <button id="reset">Replace resume</button>
-          <button id="analyze">
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+        <div class="textarea-wrapper">
+          <textarea id="resumeBox" readonly placeholder="Parsed text will appear here..."></textarea>
+        </div>
+      </section>
+
+      <!-- Actions -->
+      <section class="section">
+        <div class="actions">
+          <button id="reset" class="btn btn-secondary">
+            Replace Resume
+          </button>
+          <button id="analyze" class="btn btn-primary" disabled>
+            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
             </svg>
             Analyze Match
           </button>
         </div>
-      </div>
+      </section>
 
-      <div class="section">
-        <div id="result" class="result-placeholder">
-          Upload your resume and click "Analyze Match" to see your compatibility score and detailed insights.
+      <!-- Results Area -->
+      <section class="section">
+        <div id="result">
+          <div class="empty-state">
+            <div class="empty-state-icon">
+                <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24" style="margin: 0 auto;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+            </div>
+            <p>Upload your resume to start the analysis</p>
+          </div>
         </div>
-      </div>
-    </div>
+      </section>
+
+    </main>
 
     <!-- Footer -->
-    <div class="footer-note">
-      <div class="footer-note-title">Important Note</div>
-      <p class="footer-note-text">
-        AI-generated insights are for guidance only and don't guarantee job outcomes. Always review the role thoroughly before applying.
-      </p>
-    </div>
+    <footer class="footer">
+      <div class="disclaimer">
+        <div class="disclaimer-title">Note</div>
+        <p class="disclaimer-text">
+          AI generated results are for guidance only. Please verify job requirements manually before applying.
+        </p>
+      </div>
+    </footer>
+
   </div>
 
   <script src="pdf.min.js"></script>
