@@ -51,15 +51,21 @@ function getJD() {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
-  console.log("[Can I Apply] Message received:", msg.type);
 
   if (msg.type === "GET_JD") {
+    // Check if user is on a search results page
+    const url = window.location.href;
+    const isSearchPage = (url.includes("search-results") || (url.includes("/jobs/search/") && !url.includes("/view/"))) && !url.includes("currentJobId=");
+
+    if (isSearchPage) {
+      sendResponse({ jd: "", error: "SEARCH_PAGE" });
+      return true;
+    }
+
     try {
       const jd = getJD();
-      console.log("[Can I Apply] Sending JD to background script, length:", jd.length);
       sendResponse({ jd: jd });
     } catch (error) {
-      console.error("[Can I Apply] Error in getJD:", error);
       sendResponse({ jd: "" });
     }
   }

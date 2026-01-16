@@ -24,6 +24,7 @@ let isAnalyzing = false;
 chrome.storage.local.get(["resumeText", "lastAnalyzedResume"], d => {
   if (d.resumeText && d.resumeText.trim()) {
     resumeBox.value = d.resumeText;
+    analyzeBtn.disabled = false; // Enable button when resume is restored
     showPreviewSection();
   } else {
     resumeBox.value = "";
@@ -142,7 +143,7 @@ chrome.runtime.onMessage.addListener(msg => {
 });
 
 function renderHTML(text) {
-  if (!text.includes("Job Domain:")) {
+  if (!text.includes("Job Domain:") && !text.includes("Decision:") && !text.includes("Match:")) {
     // Error / No Job Description State
     return `
       <div class="result-card">

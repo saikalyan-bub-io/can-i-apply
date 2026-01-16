@@ -11,7 +11,22 @@ chrome.runtime.onMessage.addListener(async (msg) => {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
+    if (!tab?.url?.includes("linkedin.com/jobs") && !tab?.url?.includes("linkedin.com/feed")) {
+      chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Go to LinkedIn:\n- This extension only works on LinkedIn Job pages\n- Navigate to linkedin.com/jobs to use" });
+      return;
+    }
+
     chrome.tabs.sendMessage(tab.id, { type: "GET_JD" }, async res => {
+      if (chrome.runtime.lastError) {
+        // Content script might not be loaded yet or effectively effectively missing
+        chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Refresh:\n- The extension needs to reload on this page\n- Please refresh the page and try again" });
+        return;
+      }
+
+      if (res?.error === "SEARCH_PAGE") {
+        chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Select a Job:\n- You are currently on a search results page\n- Please click on a specific job title to open the details view\n- Then click 'Analyze Match' again" });
+        return;
+      }
 
       const jd = (res?.jd || "").slice(0, 6000);
 
