@@ -136,6 +136,7 @@ chrome.runtime.onMessage.addListener(msg => {
     if (html) {
       resultDiv.innerHTML = html;
       initAccordions();
+      setTimeout(initGenerateButton, 0); // Ensure DOM is ready
     } else {
       resultDiv.innerText = msg.text;
     }
@@ -267,6 +268,20 @@ function renderHTML(text) {
   }
 
   html += '</div>'; // end lockup
+
+  if (matchNum >= 40) {
+    html += `
+        <div style="margin-top: 1rem;">
+            <button id="btn-generate-resume" class="btn btn-primary" style="width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8);">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                </svg>
+                Get Job Ready Resume
+            </button>
+        </div>
+      `;
+  }
+
   html += '</div>'; // end header
 
   // Intro/Overview part
@@ -360,3 +375,47 @@ function initAccordions() {
     });
   });
 }
+
+function initGenerateButton() {
+  const btn = document.getElementById("btn-generate-resume");
+  if (!btn) return;
+
+  btn.onclick = async () => {
+    // 1. Loading State
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `
+      <svg class="animate-spin" style="animation: spin 1s linear infinite; margin-right: 0.5rem;" width="18" height="18" fill="none" viewBox="0 0 24 24">
+        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+      Generating Resume...
+    `;
+
+    try {
+      // 2. Send Message
+      const response = await chrome.runtime.sendMessage({ type: "GENERATE_RESUME" });
+
+      if (response && response.success) {
+        // 3. Send Message to Content Script to show modal on main screen
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (tab) {
+          await chrome.tabs.sendMessage(tab.id, {
+            type: "SHOW_RESUME",
+            data: response.data
+          });
+        }
+      } else {
+        alert("Failed to generate resume: " + (response?.error || "Unknown error"));
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Error generating resume: " + e.message);
+    } finally {
+      // 5. Reset
+      btn.disabled = false;
+      btn.innerHTML = originalText;
+    }
+  };
+}
+

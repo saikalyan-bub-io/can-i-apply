@@ -143,3 +143,120 @@ ${resume}
   const data = await response.json();
   return data.choices[0].message.content.trim();
 }
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg.type === "GENERATE_RESUME") {
+    (async () => {
+      try {
+        // Get JD from active tab
+        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+        if (!tab) {
+          sendResponse({ error: "No active tab" });
+          return;
+        }
+
+        // We'll reuse the content script to get the JD if we don't have it passed in msg
+        // But typically for this feature, we might depend on previous state or just fetch again.
+        // Let's allow passing jd and resume in msg directly if possible, or fetch like ANALYZE.
+        // For simplicity, let's assume we fetch fresh to be safe.
+
+        const response = await chrome.tabs.sendMessage(tab.id, { type: "GET_JD" });
+        const jd = (response?.jd || "").slice(0, 6000);
+
+        const data = await chrome.storage.local.get("resumeText");
+        const resume = (data.resumeText || "").slice(0, 6000);
+
+        if (!jd || !resume) {
+          sendResponse({ error: "Missing JD or Resume" });
+          return;
+        }
+
+        const generatedData = await generateResumeJSON(jd, resume);
+        sendResponse({ success: true, data: generatedData });
+      } catch (error) {
+        console.error("Resume Gen Error:", error);
+        sendResponse({ error: error.message });
+      }
+    })();
+    return true; // Keep channel open
+  }
+});
+
+async function generateResumeJSON(jd, resume) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        { role: "system", content: "You are an elite career strategist and expert ATS resume optimizer." },
+        {
+          role: "user",
+          content: `
+You are rewriting a user's resume to specifically target a Job Description.
+
+Target: create a "Job Ready" resume that is fully optimized for the proprietary ATS of the target company.
+
+Job Description:
+${jd}
+
+Original Resume:
+${resume}
+
+CRITICAL INSTRUCTIONS:
+1. **Analyze Gaps**: Identify skills, keywords, and specific methodologies present in the JD but missing from the resume.
+2. **Aggressive Integration**: You MUST add these missing skills and "minute details" (specific tools, versions, protocols mentioned in JD) into the resume. 
+   - Add them to the "Skills" section.
+   - Weave them into "Experience" bullets where they plausibly fit the user's history (e.g., if JD asks for "Jira", and user has generic "project management", verify it as "Agile Project Management using Jira").
+3. **ATS Format**: Keep the structure clean. Use standard headings.
+4. **Summary**: Rewrite the summary to be a powerful elevator pitch that hits the top 3 requirements of the JD.
+5. **No Hallucinations**: Do not invent completely false jobs or companies. But DO rephrase, expand, and specificize existing experience to match the JD's language perfectly.
+
+Return content in this JSON structure:
+{
+  "header": {
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "linkedin": "LinkedIn URL",
+    "location": "Location"
+  },
+  "summary": "Tailored summary...",
+  "skills": ["Skill 1", "Skill 2", ...],
+  "experience": [
+    {
+      "role": "Job Title",
+      "company": "Company",
+      "date": "Date Range",
+      "points": ["Actionable bullet 1", "Actionable bullet 2"]
+    }
+  ],
+  "projects": [
+    {
+      "name": "Project Name",
+      "description": "Short desc",
+      "points": ["Bullet 1"]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Degree",
+      "school": "School",
+      "date": "Year"
+    }
+  ]
+}
+`
+        }
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.3
+    })
+  });
+
+  const data = await response.json();
+  return JSON.parse(data.choices[0].message.content);
+}
