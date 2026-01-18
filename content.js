@@ -90,7 +90,7 @@ function showResumeModal(data) {
   const shadow = root.attachShadow({ mode: "open" });
 
   const resumeStyles = `
-    body { font-family: 'Inter', -apple-system, sans-serif; background: white; margin: 0; padding: 0.5in 0.75in; }
+    .page { font-family: 'Inter', -apple-system, sans-serif; background: white; margin: 0; padding: 0.5in 0.75in; min-height: 10in; box-sizing: border-box; }
     .header-content { text-align: center; margin-bottom: 1.5rem; border-bottom: 1px solid #e5e7eb; padding-bottom: 1.5rem; }
     .header-content h1 { font-size: 24pt; margin: 0; color: #0f172a; }
     .contact-line { display: flex; justify-content: center; gap: 0.75rem; font-size: 10pt; color: #4b5563; margin-top: 0.5rem; }
@@ -227,38 +227,49 @@ function showResumeModal(data) {
   overlay.onclick = (e) => { if (e.target === overlay) cleanup(); };
 
   shadow.getElementById("ca-download-btn").onclick = () => {
-    const iframe = document.createElement("iframe");
-    iframe.style.position = "fixed";
-    iframe.style.right = "100%";
-    iframe.style.bottom = "100%";
-    iframe.style.width = "0";
-    iframe.style.height = "0";
-    iframe.style.border = "none";
-    document.body.appendChild(iframe);
+    // 1. Create a temporary container in the main document
+    // This is needed because html2canvas has trouble rendering content inside Shadow DOM
+    const tempContainer = document.createElement("div");
+    tempContainer.style.position = "absolute";
+    tempContainer.style.left = "-9999px";
+    tempContainer.style.top = "0";
+    tempContainer.style.width = "8.5in";
+    tempContainer.style.background = "white";
+    tempContainer.style.zIndex = "-1";
 
-    const doc = iframe.contentWindow.document;
-    doc.open();
-    doc.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Resume</title>
-          <style>${resumeStyles}</style>
-        </head>
-        <body>
-          ${getResumeHTML(data)}
-        </body>
-      </html>
-    `);
-    doc.close();
+    tempContainer.innerHTML = `
+      <style>${resumeStyles}</style>
+      <div class="page">${getResumeHTML(data)}</div>
+    `;
+    document.body.appendChild(tempContainer);
 
-    iframe.onload = () => {
-      iframe.contentWindow.focus();
-      iframe.contentWindow.print();
-      setTimeout(() => {
-        iframe.remove();
-      }, 500);
+    // Target the .page element specifically for better accuracy
+    const element = tempContainer.querySelector('.page');
+
+    const opt = {
+      margin: [0, 0, 0, 0],
+      filename: `Resume_${data.header.name.replace(/\s+/g, '_')}.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        logging: false,
+        backgroundColor: '#ffffff'
+      },
+      jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
     };
+
+    // Add a small delay to ensure the browser has calculated styles and layout
+    setTimeout(() => {
+      html2pdf().set(opt).from(element).save().then(() => {
+        // Clean up the temporary container
+        document.body.removeChild(tempContainer);
+      }).catch(err => {
+        console.error("PDF Export Error:", err);
+        document.body.removeChild(tempContainer);
+      });
+    }, 150);
   };
 
   // Prevent background scroll
