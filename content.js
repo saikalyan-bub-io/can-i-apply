@@ -50,6 +50,23 @@ function getJD() {
   return result;
 }
 
+function checkEasyApply() {
+  const applyButtons = document.querySelectorAll('button.jobs-apply-button');
+  for (const btn of applyButtons) {
+    if (btn.innerText.toLowerCase().includes('easy apply')) {
+      return true;
+    }
+  }
+  // Secondary check for text-based detection
+  const allButtons = document.querySelectorAll('button');
+  for (const btn of allButtons) {
+    if (btn.innerText.toLowerCase().includes('easy apply') && btn.offsetParent !== null) {
+      return true;
+    }
+  }
+  return false;
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   if (msg.type === "GET_JD") {
@@ -64,10 +81,20 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
     try {
       const jd = getJD();
-      sendResponse({ jd: jd });
+      const isEasyApply = checkEasyApply();
+      sendResponse({ jd: jd, isEasyApply: isEasyApply });
     } catch (error) {
-      sendResponse({ jd: "" });
+      sendResponse({ jd: "", isEasyApply: false });
     }
+  }
+
+  if (msg.type === "START_ASSISTED_APPLY") {
+    startAssistedApply().then(result => {
+      sendResponse(result);
+    }).catch(err => {
+      sendResponse({ success: false, error: err.message });
+    });
+    return true;
   }
 
   if (msg.type === "SHOW_RESUME") {
@@ -77,6 +104,205 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
   return true; // Keep the message channel open for async response
 });
+
+async function startAssistedApply() {
+  console.log("Starting Assisted Apply...");
+
+  // 1. Find and click Easy Apply button
+  const applyButton = Array.from(document.querySelectorAll('button'))
+    .find(b => b.innerText.toLowerCase().includes('easy apply') && b.offsetParent !== null);
+
+  if (!applyButton) {
+    throw new Error("Easy Apply button not found");
+  }
+
+  applyButton.click();
+
+  // 2. Start observation loop for modal
+  let attempts = 0;
+  const maxAttempts = 20;
+  let modalFound = false;
+
+  while (attempts < maxAttempts) {
+    const modal = document.querySelector('.jobs-easy-apply-modal');
+    if (modal) {
+      modalFound = true;
+      await automationLoop(modal);
+      break;
+    }
+    await new Promise(r => setTimeout(r, 500));
+    attempts++;
+  }
+
+  if (!modalFound) throw new Error("Application modal didn't open in time");
+
+  return { success: true, message: "Assistant has filled the forms. Please review and click Submit." };
+}
+
+async function automationLoop(modal) {
+  let finished = false;
+  let lastPageHtml = "";
+
+  while (!finished) {
+    const currentPageHtml = modal.innerHTML;
+    if (currentPageHtml === lastPageHtml) {
+      // Small wait to see if things change
+      await new Promise(r => setTimeout(r, 1000));
+      if (modal.innerHTML === lastPageHtml) {
+        console.log("Page didn't change, stopping.");
+        break;
+      }
+    }
+    lastPageHtml = modal.innerHTML;
+
+    await fillForm(modal);
+    await new Promise(r => setTimeout(r, 500));
+
+    // Check for Next or Review buttons
+    const nextButton = modal.querySelector('button[aria-label="Continue to next step"], button[aria-label="Review your application"]');
+    const submitButton = modal.querySelector('button[aria-label="Submit application"]');
+
+    if (submitButton) {
+      console.log("Reached Submit page. Stopping for user review.");
+      finished = true;
+    } else if (nextButton) {
+      console.log("Clicking Next...");
+      nextButton.click();
+      // Wait for next page to load
+      await new Promise(r => setTimeout(r, 1500));
+    } else {
+      console.log("No Next/Submit button found. Stopping.");
+      finished = true;
+    }
+  }
+}
+
+async function fillForm(modal) {
+  // Check if we are on a Resume page
+  if (modal.innerText.includes('Resume') || modal.querySelector('.jobs-document-upload__container')) {
+    await handleResumePage(modal);
+  }
+
+  // Find all form field containers
+  const containers = modal.querySelectorAll('.jobs-easy-apply-form-section__grouping, .fb-dash-form-element, .jobs-easy-apply-form-element, .jobs-easy-apply-form-section__list-item');
+
+  for (const container of containers) {
+    // Try to find label text more robustly
+    let labelText = "";
+    const labelEl = container.querySelector('label');
+    if (labelEl) {
+      labelText = labelEl.innerText.trim();
+    } else {
+      // Look for any text content that might be a label
+      const possibleLabel = container.querySelector('.fb-dash-form-element__label, .jobs-easy-apply-form-element__label, span[aria-hidden="true"]');
+      if (possibleLabel) {
+        labelText = possibleLabel.innerText.trim();
+      }
+    }
+
+    // Check for different input types
+    const textInput = container.querySelector('input[type="text"], input[type="email"], input[type="tel"], textarea');
+    const radios = container.querySelectorAll('input[type="radio"]');
+    const select = container.querySelector('select');
+
+    if (textInput && (!textInput.value || textInput.value.trim() === "")) {
+      console.log(`Filling text field: ${labelText}`);
+      await handleTextInput(textInput, labelText);
+    } else if (radios.length > 0) {
+      const checked = Array.from(radios).find(r => r.checked);
+      if (!checked) {
+        await handleRadioInput(radios, labelText);
+      }
+    } else if (select && (!select.value || select.value === "Select an option")) {
+      await handleSelectInput(select, labelText);
+    }
+  }
+}
+
+async function handleResumePage(modal) {
+  console.log("Handling Resume selection...");
+  const resumes = modal.querySelectorAll('.jobs-document-upload__container input[type="radio"]');
+  if (resumes.length > 0) {
+    const checked = Array.from(resumes).find(r => r.checked);
+    if (!checked) {
+      resumes[0].click(); // Select the first one
+    }
+  }
+}
+
+async function handleTextInput(input, question) {
+  if (!question) return;
+  const q = question.toLowerCase();
+  // Basic info and questions
+
+  const isBasic = q.includes('name') || q.includes('email') || q.includes('phone') || q.includes('mobile');
+  const isQuestion = q.includes('?') || q.includes('how many') || q.includes('years') || q.length > 15 || q.includes('website');
+
+  if (isBasic || isQuestion) {
+    const res = await chrome.runtime.sendMessage({ type: "SUGGEST_ANSWER", question: question });
+    if (res && res.success && res.answer) {
+      input.value = res.answer;
+      ['input', 'change', 'blur'].forEach(ev => {
+        input.dispatchEvent(new Event(ev, { bubbles: true }));
+      });
+    }
+  }
+}
+
+async function handleRadioInput(radios, question) {
+  const q = question.toLowerCase();
+  let choice = "yes"; // Default
+
+  if (q.includes('sponsorship') || q.includes('visa')) {
+    choice = "no";
+  } else if (q.includes('background check') || q.includes('authorized')) {
+    choice = "yes";
+  } else {
+    // AI suggestion for radio
+    const options = Array.from(radios).map(r => r.nextElementSibling?.innerText.trim() || "").join(", ");
+    const res = await chrome.runtime.sendMessage({
+      type: "SUGGEST_ANSWER",
+      question: `Question: ${question}. Options: ${options}. Pick the single best option text.`
+    });
+
+    if (res && res.success) {
+      const best = res.answer.toLowerCase();
+      for (const r of radios) {
+        if (r.nextElementSibling?.innerText.trim().toLowerCase().includes(best)) {
+          r.click();
+          return;
+        }
+      }
+    }
+  }
+
+  // Default click if no AI match
+  for (const r of radios) {
+    if (r.nextElementSibling?.innerText.trim().toLowerCase().includes(choice)) {
+      r.click();
+      break;
+    }
+  }
+}
+
+async function handleSelectInput(select, question) {
+  const options = Array.from(select.options).map(o => o.text).join(", ");
+  const res = await chrome.runtime.sendMessage({
+    type: "SUGGEST_ANSWER",
+    question: `Question: ${question}. Options: ${options}. Pick the single best option text.`
+  });
+
+  if (res && res.success) {
+    const best = res.answer.toLowerCase();
+    for (let i = 0; i < select.options.length; i++) {
+      if (select.options[i].text.toLowerCase().includes(best)) {
+        select.selectedIndex = i;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        return;
+      }
+    }
+  }
+}
 
 function showResumeModal(data) {
   // Remove existing modal if any

@@ -44,7 +44,7 @@ chrome.runtime.onMessage.addListener(async (msg) => {
         }
 
         const result = await analyze(jd, resume);
-        chrome.runtime.sendMessage({ type: "RESULT", text: result });
+        chrome.runtime.sendMessage({ type: "RESULT", text: result, isEasyApply: res?.isEasyApply });
       });
     });
   }
@@ -148,37 +148,37 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GENERATE_RESUME") {
     (async () => {
       try {
-        // Get JD from active tab
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        if (!tab) {
-          sendResponse({ error: "No active tab" });
-          return;
-        }
-
-        // We'll reuse the content script to get the JD if we don't have it passed in msg
-        // But typically for this feature, we might depend on previous state or just fetch again.
-        // Let's allow passing jd and resume in msg directly if possible, or fetch like ANALYZE.
-        // For simplicity, let's assume we fetch fresh to be safe.
+        if (!tab) return sendResponse({ error: "No active tab" });
 
         const response = await chrome.tabs.sendMessage(tab.id, { type: "GET_JD" });
         const jd = (response?.jd || "").slice(0, 6000);
-
         const data = await chrome.storage.local.get("resumeText");
         const resume = (data.resumeText || "").slice(0, 6000);
 
-        if (!jd || !resume) {
-          sendResponse({ error: "Missing JD or Resume" });
-          return;
-        }
+        if (!jd || !resume) return sendResponse({ error: "Missing JD or Resume" });
 
         const generatedData = await generateResumeJSON(jd, resume);
         sendResponse({ success: true, data: generatedData });
       } catch (error) {
-        console.error("Resume Gen Error:", error);
         sendResponse({ error: error.message });
       }
     })();
-    return true; // Keep channel open
+    return true;
+  }
+
+  if (msg.type === "SUGGEST_ANSWER") {
+    (async () => {
+      try {
+        const data = await chrome.storage.local.get("resumeText");
+        const resume = (data.resumeText || "").slice(0, 6000);
+        const answer = await suggestAnswer(msg.question, resume);
+        sendResponse({ success: true, answer: answer });
+      } catch (error) {
+        sendResponse({ success: false, error: error.message });
+      }
+    })();
+    return true;
   }
 });
 
@@ -259,4 +259,31 @@ Return content in this JSON structure:
 
   const data = await response.json();
   return JSON.parse(data.choices[0].message.content);
+}
+
+async function suggestAnswer(question, resume) {
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.1-8b-instant",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert career assistant. Based on the user's resume, provide a concise and truthful answer to the job application question. If the question is a Yes/No question, answer with 'Yes' or 'No'. If it asks for numerical values (like years of experience), provide the number. Keep answers very short."
+        },
+        {
+          role: "user",
+          content: `Question: ${question}\n\nResume Context:\n${resume}`
+        }
+      ],
+      temperature: 0.1
+    })
+  });
+
+  const data = await response.json();
+  return data.choices[0].message.content.trim();
 }

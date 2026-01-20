@@ -132,18 +132,21 @@ chrome.runtime.onMessage.addListener(msg => {
     lastAnalyzedResume = (resumeBox.value || "").trim();
     chrome.storage.local.set({ lastAnalyzedResume });
 
-    const html = renderHTML(msg.text || "");
+    const html = renderHTML(msg.text || "", msg.isEasyApply);
     if (html) {
       resultDiv.innerHTML = html;
       initAccordions();
-      setTimeout(initGenerateButton, 0); // Ensure DOM is ready
+      setTimeout(() => {
+        initGenerateButton();
+        initAssistedApplyButton();
+      }, 0);
     } else {
       resultDiv.innerText = msg.text;
     }
   }
 });
 
-function renderHTML(text) {
+function renderHTML(text, isEasyApply) {
   if (!text.includes("Job Domain:") && !text.includes("Decision:") && !text.includes("Match:")) {
     // Error / No Job Description State
     return `
@@ -277,6 +280,19 @@ function renderHTML(text) {
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
                 </svg>
                 Get Job Ready Resume
+            </button>
+        </div>
+      `;
+  }
+
+  if (isEasyApply) {
+    html += `
+        <div style="margin-top: 0.75rem;">
+            <button id="btn-assisted-apply" class="btn btn-assisted" style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                Smart Apply Assistant
             </button>
         </div>
       `;
@@ -417,5 +433,133 @@ function initGenerateButton() {
       btn.innerHTML = originalText;
     }
   };
+}
+
+function initAssistedApplyButton() {
+  const btn = document.getElementById("btn-assisted-apply");
+  if (!btn) return;
+
+  btn.onclick = async () => {
+    // Check if user has seen walkthrough
+    const { hasSeenEasyApplyWalkthrough } = await chrome.storage.local.get("hasSeenEasyApplyWalkthrough");
+
+    if (!hasSeenEasyApplyWalkthrough) {
+      // First time - show walkthrough
+      showWalkthrough(() => startAssistedApply(btn));
+    } else {
+      // Subsequent times - apply directly
+      startAssistedApply(btn);
+    }
+  };
+}
+
+function showWalkthrough(onComplete) {
+  // Create overlay
+  const overlay = document.createElement("div");
+  overlay.className = "walkthrough-overlay";
+  overlay.innerHTML = `
+    <div class="walkthrough-modal">
+      <div class="walkthrough-header">
+        <div class="walkthrough-icon">
+          <svg width="32" height="32" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+          </svg>
+        </div>
+        <h2>Smart Apply Assistant</h2>
+        <p>Let's walk you through how this works!</p>
+      </div>
+      <div class="walkthrough-body">
+        <div class="walkthrough-steps">
+          <div class="walkthrough-step">
+            <div class="walkthrough-step-icon">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
+              </svg>
+            </div>
+            <div class="walkthrough-step-content">
+              <h4>Auto-Fill Forms</h4>
+              <p>We'll automatically fill in your contact info and answer common questions.</p>
+            </div>
+          </div>
+          <div class="walkthrough-step">
+            <div class="walkthrough-step-icon">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <div class="walkthrough-step-content">
+              <h4>Resume Selection</h4>
+              <p>Your resume will be automatically selected if available.</p>
+            </div>
+          </div>
+          <div class="walkthrough-step">
+            <div class="walkthrough-step-icon">
+              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div class="walkthrough-step-content">
+              <h4>Review Before Submit</h4>
+              <p>You'll always have a chance to review everything before submitting.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="walkthrough-footer">
+        <button class="btn btn-skip" id="walkthrough-skip">Skip</button>
+        <button class="btn btn-start" id="walkthrough-start">Start Applying</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  const closeWalkthrough = (proceed) => {
+    overlay.remove();
+    // Mark walkthrough as seen
+    chrome.storage.local.set({ hasSeenEasyApplyWalkthrough: true });
+    if (proceed && onComplete) {
+      onComplete();
+    }
+  };
+
+  document.getElementById("walkthrough-skip").onclick = () => closeWalkthrough(false);
+  document.getElementById("walkthrough-start").onclick = () => closeWalkthrough(true);
+
+  // Close on overlay click (outside modal)
+  overlay.onclick = (e) => {
+    if (e.target === overlay) closeWalkthrough(false);
+  };
+}
+
+async function startAssistedApply(btn) {
+  const originalText = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = `
+    <svg class="animate-spin" style="animation: spin 1s linear infinite; margin-right: 0.5rem;" width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    Starting Assist...
+  `;
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tab) {
+      const response = await chrome.tabs.sendMessage(tab.id, { type: "START_ASSISTED_APPLY" });
+      if (response && response.success) {
+        // Maybe close the sidepanel or show a message?
+        // For now just keep it.
+      } else {
+        alert("Failed to start assistant: " + (response?.error || "Unknown error"));
+      }
+    }
+  } catch (e) {
+    console.error(e);
+    alert("Error: " + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = originalText;
+  }
 }
 
