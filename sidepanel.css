@@ -487,6 +487,37 @@ textarea:focus {
     border: 1px solid rgba(22, 163, 74, 0.2);
 }
 
+.btn-refresh-lockup {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.6rem;
+    background: white;
+    border: 1px solid var(--gray-200);
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--gray-600);
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.btn-refresh-lockup:hover {
+    border-color: var(--primary-500);
+    color: var(--primary-600);
+    background: var(--primary-50);
+    transform: translateY(-1px);
+}
+
+.btn-refresh-lockup svg {
+    transition: transform 0.3s ease;
+}
+
+.btn-refresh-lockup:hover svg {
+    transform: rotate(180deg);
+}
+
 .overview-section {
     padding: 1.25rem;
 }

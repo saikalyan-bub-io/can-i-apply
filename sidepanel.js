@@ -24,16 +24,20 @@ let isAnalyzing = false;
 chrome.storage.local.get(["resumeText", "lastAnalyzedResume"], d => {
   if (d.resumeText && d.resumeText.trim()) {
     resumeBox.value = d.resumeText;
-    analyzeBtn.disabled = false; // Enable button when resume is restored
+    analyzeBtn.disabled = false;
     showPreviewSection();
   } else {
     resumeBox.value = "";
     showUploadSection();
   }
-  if (d.lastAnalyzedResume) {
-    lastAnalyzedResume = d.lastAnalyzedResume;
-  }
 });
+
+// Initialize permanent refresh button
+document.getElementById("btn-refresh-permanent").onclick = () => {
+  resetResultUI();
+  lastAnalyzedResume = "";
+  chrome.storage.local.set({ lastAnalyzedResume: "" });
+};
 
 // File input handler
 document.getElementById("fileInput").addEventListener("change", async e => {
@@ -92,16 +96,6 @@ analyzeBtn.onclick = () => {
   const current = resumeBox.value.trim();
   if (!current) return alert("Please upload your resume first");
 
-  if (lastAnalyzedResume && current === lastAnalyzedResume.trim()) {
-    // If we are already showing results for this resume, and they are still there, no need to re-analyze.
-    // But if resultDiv is empty or showing placeholder, proceed (though that shouldn't happen with correct logic).
-    if (!resultDiv.querySelector(".result-card")) {
-      // Just in case
-    } else {
-      return; // Already showing results
-    }
-  }
-
   if (isAnalyzing) return;
 
   isAnalyzing = true;
@@ -139,12 +133,23 @@ chrome.runtime.onMessage.addListener(msg => {
       setTimeout(() => {
         initGenerateButton();
         initAssistedApplyButton();
+        initRefreshButton();
       }, 0);
     } else {
       resultDiv.innerText = msg.text;
     }
   }
 });
+
+function initRefreshButton() {
+  const btn = document.getElementById("btn-refresh-results");
+  if (!btn) return;
+  btn.onclick = () => {
+    resetResultUI();
+    lastAnalyzedResume = "";
+    chrome.storage.local.set({ lastAnalyzedResume: "" });
+  };
+}
 
 function renderHTML(text, isEasyApply) {
   if (!text.includes("Job Domain:") && !text.includes("Decision:") && !text.includes("Match:") && !text.includes("Alignment:")) {

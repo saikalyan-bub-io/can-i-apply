@@ -12,7 +12,8 @@
   "host_permissions": [
     "https://api.mistral.ai/*",
     "https://api.openai.com/*",
-    "https://api.groq.com/*"
+    "https://api.groq.com/*",
+    "*://*.linkedin.com/*"
   ],
   "background": {
     "service_worker": "background.js"

@@ -11,42 +11,50 @@ chrome.runtime.onMessage.addListener(async (msg) => {
 
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-    if (!tab?.url?.includes("linkedin.com/jobs") && !tab?.url?.includes("linkedin.com/feed")) {
+    if (!tab?.url?.includes("linkedin.com")) {
       chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Go to LinkedIn:\n- This extension only works on LinkedIn Job pages\n- Navigate to linkedin.com/jobs to use" });
       return;
     }
 
-    chrome.tabs.sendMessage(tab.id, { type: "GET_JD" }, async res => {
-      if (chrome.runtime.lastError) {
-        // Content script might not be loaded yet or effectively effectively missing
-        chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Refresh:\n- The extension needs to reload on this page\n- Please refresh the page and try again" });
-        return;
-      }
-
-      if (res?.error === "SEARCH_PAGE") {
-        chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Select a Job:\n- You are currently on a search results page\n- Please click on a specific job title to open the details view\n- Then click 'Analyze Match' again" });
-        return;
-      }
-
-      const jd = (res?.jd || "").slice(0, 6000);
-
-      chrome.storage.local.get("resumeText", async data => {
-        const resume = (data.resumeText || "").slice(0, 6000);
-
-        if (!resume.trim()) {
-          chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Domain\nMissing Skills:\n- Upload resume first" });
+    const trySendMessage = (tabId) => {
+      chrome.tabs.sendMessage(tabId, { type: "GET_JD" }, async res => {
+        if (chrome.runtime.lastError) {
+          // If we are on a valid LinkedIn job view page, don't show the error as requested by the user.
+          if (tab.url.includes("/jobs/view/")) {
+            console.log("Suppressed lastError because user is on a valid /jobs/view/ URL");
+            return;
+          }
+          chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Refresh:\n- The extension needs to reload on this page\n- Please refresh the page and try again" });
           return;
         }
 
-        if (!jd.trim() || jd.length < 100) {
-          chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Domain\n\nJob Description Not Found:\n- Please make sure you're on a job listing page\n- Try refreshing the page and clicking 'Analyze Match' again\n- LinkedIn job description might not be loaded yet" });
+        if (res?.error === "SEARCH_PAGE") {
+          chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Page\n\nPlease Select a Job:\n- You are currently on a search results page\n- Please click on a specific job title to open the details view\n- Then click 'Analyze Match' again" });
           return;
         }
 
-        const result = await analyze(jd, resume);
-        chrome.runtime.sendMessage({ type: "RESULT", text: result, isEasyApply: res?.isEasyApply });
+        const jd = (res?.jd || "").slice(0, 6000);
+
+        chrome.storage.local.get("resumeText", async data => {
+          const resume = (data.resumeText || "").slice(0, 6000);
+
+          if (!resume.trim()) {
+            chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Domain\nMissing Skills:\n- Upload resume first" });
+            return;
+          }
+
+          if (!jd.trim() || jd.length < 100) {
+            chrome.runtime.sendMessage({ type: "RESULT", text: "Match: 0%\nDecision: Invalid Domain\n\nJob Description Not Found:\n- Please make sure you're on a job listing page\n- Try refreshing the page and clicking 'Analyze Match' again\n- LinkedIn job description might not be loaded yet" });
+            return;
+          }
+
+          const result = await analyze(jd, resume);
+          chrome.runtime.sendMessage({ type: "RESULT", text: result, isEasyApply: res?.isEasyApply });
+        });
       });
-    });
+    };
+
+    trySendMessage(tab.id);
   }
 });
 
@@ -64,7 +72,7 @@ async function analyze(jd, resume) {
         { role: "system", content: "You are an ATS resume evaluator." },
         {
           role: "user",
-         content: `
+          content: `
 You are a STRICT ATS + Recruiter Intelligence Engine.
 
 CRITICAL RULES FOR DOMAIN EXTRACTION:

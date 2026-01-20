@@ -72,7 +72,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg.type === "GET_JD") {
     // Check if user is on a search results page
     const url = window.location.href;
-    const isSearchPage = (url.includes("search-results") || (url.includes("/jobs/search/") && !url.includes("/view/"))) && !url.includes("currentJobId=");
+    const isSearchPage = (url.includes("/jobs/search/") || url.includes("search-results")) && !url.includes("/view/") && !url.includes("currentJobId=");
 
     if (isSearchPage) {
       sendResponse({ jd: "", error: "SEARCH_PAGE" });
