@@ -96,6 +96,12 @@ analyzeBtn.onclick = () => {
   const current = resumeBox.value.trim();
   if (!current) return alert("Please upload your resume first");
 
+  // Guardrail: Reset required if results are already shown
+  if (resultDiv.querySelector('.result-card')) {
+    alert("Please clear current results before analyzing again.");
+    return;
+  }
+
   if (isAnalyzing) return;
 
   isAnalyzing = true;
